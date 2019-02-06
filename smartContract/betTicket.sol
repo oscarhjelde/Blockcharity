@@ -7,11 +7,21 @@ contract Lottery
        uint price;
        uint id;
    }
+   
+     struct Charity 
+   {
+       string name;
+       string description;
+       address charityAddress;
+   }
+   
    uint nextTicketIdToAssign;
    Ticket[] tickets;
    mapping(address => bool) users;
    address payable winner;
+   
    address[] usersAddresses;
+   Charity[] charities;
    uint totalBalance;
    
    // those three variables are relative to the winner.
@@ -41,7 +51,7 @@ contract Lottery
         _;
     }
     
-    // create events : transaction ( general successfull , donor successfully gave money , tickets , winner)
+    // create events : transaction ( general successfull) , donor successfully gave money , tickets , winner 
 
    constructor() public
    {
@@ -77,6 +87,33 @@ contract Lottery
       }
       totalBalance+=msg.value;
   }
+  
+  function  addCharity(string memory charityName, string memory charityDescription , address charityAddress) public {
+      charities.push(Charity(charityName,charityDescription,charityAddress));
+  }
+  
+  function  removeCharity(address charityToDelete) public {
+     uint i = indexOfElement(charityToDelete);
+     charities[i] = charities[charities.length-1];
+     delete charities[charities.length-1];
+     charities.length--;
+  }
+  
+  function indexOfElement(address ca) public returns (uint)
+  {
+       for(uint index=0; index<charities.length; index++)
+      {
+          Charity memory c = charities[index];
+          if(ca == c.charityAddress)
+          {
+            return index;
+          }
+      }
+      return 0; // need to think about error value. 
+   
+  }
+  
+  
   
   function userInLottery(address u) public view returns (bool)
   {
