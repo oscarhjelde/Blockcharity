@@ -1,0 +1,91 @@
+pragma solidity ^0.5.1;
+
+
+contract flowFundr{
+    
+    uint totalMoneyDonated;
+    uint target;
+    uint beginning; //must change when in next stage
+    uint end; //must change when in next stage
+    uint duration;
+    address payable projectOwner; // person that is fundraising for the project.
+    uint stage; //stage in flow
+    uint finalStage;
+    
+    struct Investment{
+        uint amountDonated;
+        address investor;
+    }
+    
+    struct Goal {
+        uint timestamp;
+        uint goalValue;
+    }
+    
+    Goal[] private flow; //contains all timestamps and value goals. not sure if private is right but nobody should be able to change it
+    
+    constructor (Goal[] memory _flow) public{ //doesnt work but would be useful if front end just imported the data structure. was considering 2d array and looping to populate but less efficient
+        flow = _flow;
+        uint initialDuration = flow[0].timestamp;//first in flow should be initial fundraising period and goal
+        duration = initialDuration;
+        target = flow[0].goalValue;
+        stage = 0;
+        finalStage = flow.length;
+        beginning = now;
+        end = beginning + duration;
+    }
+    
+    Investment[] investments;
+    
+    modifier overLimit{
+        require(totalMoneyDonated+msg.value <= target);
+        _;
+    }
+    
+    modifier overDeadline
+    {
+        require(now < end && now >= beginning);
+        _;
+    }
+    
+    function moneyTracker() public payable overLimit overDeadline{
+        Investment memory i = Investment(msg.value,msg.sender);
+        investments.push(i);
+        totalMoneyDonated += msg.value;
+    }
+    
+    
+    function transfer(uint amount, address payable a)  public 
+    {
+        a.transfer(amount);
+    }
+    
+    function checkConditionMet() public view returns (bool)
+    {
+        return now < end && totalMoneyDonated==target;
+    }
+    
+    function nextStage() public
+    {
+        if(checkConditionMet()) {
+            transfer(totalMoneyDonated, projectOwner);
+            stage++;
+            if(stage < finalStage){ //check to make sure indexing makes sense. else statement?
+                duration = flow[stage].timestamp;//sets new duration
+                target = flow[stage].goalValue;//sets new target
+            }
+        }
+        else refundBackInvestors();
+    }
+    
+    function refundBackInvestors() public
+    {
+        for(uint i =0; i<investments.length; i++)
+        {
+            Investment memory inv = investments[i];
+            address payable donor = address(uint160(inv.investor));
+            transfer(inv.amountDonated,donor);
+        }
+    }
+}
+    
